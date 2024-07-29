@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Downloader</title>
+    <style>
+        /* Add your CSS styles here */
+    </style>
+</head>
+<body>
+<h1>YouTube Downloader</h1>
+<form id="youtubeForm">
+    <label for="url">Enter the YouTube link</label>
+    <input type="text" id="url" name="url" required />
+    <label for="quality">Select Quality:</label>
+    <select id="quality" name="quality">
+        <option value="best">Best</option>
+        <option value="worst">Worst</option>
+        <!-- Add more options as needed -->
+    </select>
+    <input type="submit" value="Download" />
+</form>
+
+<div id="output">
+    <!-- Output messages will appear here -->
+</div>
+
+<script>
+    document
+  .getElementById("youtubeForm")
+  .addEventListener("submit", function (event) {
+    event.preventDefault();
+    var url = document.getElementById("url").value.trim();
+    var quality = document.getElementById("quality").value;
+    if (url) {
+      fetch("/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          url: url,
+          quality: quality
+        }),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          var link = document.createElement("a");
+          link.href = window.URL.createObjectURL(blob);
+          link.download = "video_" + new Date().toISOString() + ".mp4"; // Handle dynamic filename
+          link.click();
+        })
+        .catch(error => {
+          var outputDiv = document.getElementById("output");
+          outputDiv.innerHTML = "<p>Error: " + error.message + "</p>";
+        });
+    } else {
+      var outputDiv = document.getElementById("output");
+      outputDiv.innerHTML = "<p>Please enter a valid YouTube URL.</p>";
+    }
+  });
+</script>
+</body>
+</html>
