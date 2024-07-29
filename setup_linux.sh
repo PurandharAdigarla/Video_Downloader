@@ -1,25 +1,48 @@
 #!/bin/bash
 
-# Function to install packages
-install_packages() {
-    echo "Updating package list..."
-    sudo yum update -y
+# Update and install required packages
+sudo yum update -y
 
-    echo "Installing dependencies..."
-    sudo yum install -y nginx yt-dlp git java-17-openjdk maven
-}
+# Install Java 17
+sudo yum install -y java-17-amazon-corretto-devel
 
-# Function to configure nginx
-configure_nginx() {
-    echo "Configuring nginx..."
+# Install Git
+sudo yum install git -y
 
-    # Backup existing nginx.conf
-    sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+# Install Maven
+sudo yum install maven -y
 
-    # Prompt for server domain or IP
-    read -p "Enter your server domain or IP: " server_domain_or_ip
+# Install yt-dlp
+sudo yum install python3-pip -y
+pip3 install yt-dlp
 
-    cat <<EOL | sudo tee /etc/nginx/nginx.conf
+# Install Nginx
+sudo yum install nginx -y
+
+# Remove existing project directory if it exists
+if [ -d "Video_Downloader" ]; then
+    echo "Directory 'Video_Downloader' already exists. Removing it..."
+    rm -rf Video_Downloader
+fi
+
+# Clone the repository
+git clone -b main https://github.com/PurandharAdigarla/Video_Downloader.git
+
+# Navigate to the project directory
+cd Video_Downloader || { echo "Directory 'Video_Downloader' does not exist"; exit 1; }
+
+# Build the project using Maven
+mvn clean package
+
+# Copy the JAR file to a convenient location
+mkdir -p /home/ec2-user/app
+cp target/YouTube-downloader-0.0.1-SNAPSHOT.jar /home/ec2-user/app/YouTube-downloader.jar
+
+# Prompt user for server name or IP address
+read -p "Enter the server name or IP address to include in nginx.conf: " server_name
+
+# Configure Nginx
+sudo bash -c "cat > /etc/nginx/nginx.conf <<EOF
 user nginx;
 worker_processes auto;
 error_log /var/log/nginx/error.log;
@@ -30,9 +53,9 @@ events {
 }
 
 http {
-    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
-                      '\$status \$body_bytes_sent "\$http_referer" '
-                      '"\$http_user_agent" "\$http_x_forwarded_for"';
+    log_format  main  '\$remote_addr - \$remote_user [\$time_local] \"\$request\" '
+                      '\$status \$body_bytes_sent \"\$http_referer\" '
+                      '\"\$http_user_agent\" \"\$http_x_forwarded_for\"';
 
     access_log  /var/log/nginx/access.log  main;
 
@@ -50,11 +73,12 @@ http {
 
     server {
         listen 80;
+        listen [::]:80;
 
-        server_name $server_domain_or_ip;
+        server_name $server_name;
 
         location / {
-            proxy_pass http://127.0.0.1:8080;
+            proxy_pass http://127.0.0.1:8080;  # Ensure the correct port number is set here
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -65,23 +89,16 @@ http {
         error_log /var/log/nginx/your-app-error.log;
     }
 }
-EOL
+EOF"
 
-    echo "Starting nginx..."
-    sudo systemctl start nginx
-    sudo systemctl enable nginx
-}
+# Test Nginx configuration
+sudo nginx -t
 
-# Function to clone the project repository
-clone_repository() {
-    echo "Cloning the project repository..."
-    cd /var/www || exit
-    sudo git clone https://github.com/PurandharAdigarla/Video_Downloader.git
-}
+# Restart Nginx
+sudo systemctl restart nginx
 
-# Main script execution
-install_packages
-configure_nginx
-clone_repository
+# Run the application in the background
+cd /home/ec2-user/app || { echo "Directory '/home/ec2-user/app' does not exist"; exit 1; }
+nohup java -jar YouTube-downloader.jar > /home/ec2-user/app/app.log 2>&1 &
 
-echo "Linux setup complete!"
+echo "Setup complete. Your application is running and Nginx is configured."
