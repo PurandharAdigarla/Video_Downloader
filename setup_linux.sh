@@ -19,16 +19,16 @@ pip3 install yt-dlp
 # Install Nginx
 sudo yum install nginx -y
 # Remove existing project directory if it exists
-if [ -d "YouTube-Downloader" ]; then
-    echo "Directory 'YouTube-Downloader' already exists. Removing it..."
-    rm -rf YouTube-Downloader
+if [ -d "Video_Downloader" ]; then
+    echo "Directory 'Video_Downloader' already exists. Removing it..."
+    rm -rf Video_Downloader
 fi
 
 # Clone the repository
 git clone -b main https://github.com/PurandharAdigarla/Video_Downloader.git
 
 # Navigate to the project directory
-cd YouTube-Downloader/Video_Downloader || { echo "Directory 'Video_Downloader' does not exist"; exit 1; }
+cd Video_Downloader || { echo "Directory 'Video_Downloader' does not exist"; exit 1; }
 
 # Build the project using Maven
 mvn clean package
