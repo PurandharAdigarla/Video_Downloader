@@ -9,7 +9,7 @@ This repository contains the source code for a YouTube video downloader applicat
 Before you begin, ensure you have the following:
 
 - A GitHub account
-- An AWS account
+- An AWS account 
 - Basic knowledge of Linux commands
 
 ## Setting Up an EC2 Instance
