@@ -19,23 +19,40 @@ pip3 install yt-dlp
 # Install Nginx
 sudo yum install nginx -y
 # Remove existing project directory if it exists
-if [ -d "Video_Downloader" ]; then
-    echo "Directory 'Video_Downloader' already exists. Removing it..."
-    rm -rf Video_Downloader
-fi
+##if [ -d "Video_Downloader" ]; then
+##    echo "Directory 'Video_Downloader' already exists. Removing it..."
+##    rm -rf Video_Downloader
+##fi
 
 # Clone the repository
-git clone -b main https://github.com/PurandharAdigarla/Video_Downloader.git
+##git clone -b main https://github.com/PurandharAdigarla/Video_Downloader.git
 
 # Navigate to the project directory
-cd Video_Downloader || { echo "Directory 'Video_Downloader' does not exist"; exit 1; }
+##cd Video_Downloader || { echo "Directory 'Video_Downloader' does not exist"; exit 1; }
 
 # Build the project using Maven
 mvn clean package
 
+# Check if port 8082 is in use and kill the process if found
+PORT=8082
+PROCESS=$(sudo lsof -t -i :$PORT)
+
+if [ -n "$PROCESS" ]; then
+    echo "Port $PORT is in use by process $PROCESS. Killing the process..."
+    sudo kill -9 $PROCESS
+    if [ $? -eq 0 ]; then
+        echo "Process $PROCESS killed successfully."
+    else
+        echo "Failed to kill process $PROCESS."
+    fi
+else
+    echo "Port $PORT is not in use."
+fi
+
+
 # Copy the JAR file to a convenient location
 mkdir -p /home/ec2-user/app
-cp target/youtube-downloader-0.0.1-SNAPSHOT.jar /home/ec2-user/app/youtube-downloader.jar
+cp target/YouTube-downloader-0.0.1-SNAPSHOT.jar /home/ec2-user/app/youtube-downloader.jar
 
 # Configure Nginx
 sudo bash -c 'cat > /etc/nginx/nginx.conf <<EOF
@@ -85,10 +102,16 @@ sudo systemctl restart nginx
 cd /home/ec2-user/app || { echo "Directory '/home/ec2-user/app' does not exist"; exit 1; }
 nohup java -jar youtube-downloader.jar > /home/ec2-user/app/app.log 2>&1 &
 
-cd /home/ec2-user/app
-java -jar youtube-downloader.jar 
+# Capture and display the PID of the running Java process
+JAVA_PID=$(pgrep -f 'java -jar youtube-downloader.jar')
+
+if [ -n "$JAVA_PID" ]; then
+    echo "Java application is running with PID: $JAVA_PID"
+else
+    echo "Java application failed to start."
+fi
+
+##cd /home/ec2-user/app
+##java -jar youtube-downloader.jar 
 
 echo "Setup complete. Your application is running and Nginx is configured."
-
-
-
